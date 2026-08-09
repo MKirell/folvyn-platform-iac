@@ -1,0 +1,10 @@
+mongodbatlas_org_id      = ""
+mongodbatlas_public_key  = ""
+mongodbatlas_private_key = ""
+
+google_client_id     = ""
+google_client_secret = ""
+
+compute_mode  = "lambda"
+dns_validated = false
+app_image_tag = ""

@@ -1,0 +1,82 @@
+name: terraform
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev or prod
+        required: true
+        type: string
+      apply:
+        description: Apply after planning, or plan only
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    if: vars.CI_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: terraform/main
+    env:
+      TF_VAR_mongodbatlas_org_id: ${{ secrets.MONGODBATLAS_ORG_ID }}
+      TF_VAR_mongodbatlas_public_key: ${{ secrets.MONGODBATLAS_PUBLIC_KEY }}
+      TF_VAR_mongodbatlas_private_key: ${{ secrets.MONGODBATLAS_PRIVATE_KEY }}
+      TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+      TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      TF_VAR_linkedin_client_id: ${{ secrets.LINKEDIN_CLIENT_ID }}
+      TF_VAR_linkedin_client_secret: ${{ secrets.LINKEDIN_CLIENT_SECRET }}
+      TF_VAR_github_token: ${{ secrets.GH_TOKEN }}
+      TF_VAR_app_image_tag: ${{ vars.APP_IMAGE_TAG }}
+      TF_VAR_aws_profile: ''
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.15.8
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Format
+        run: terraform fmt -check -recursive ..
+
+      - name: Init
+        run: terraform init -input=false -backend-config=backends/${{ inputs.environment }}.hcl
+
+      - name: Validate
+        run: terraform validate -no-color
+
+      - name: Plan
+        run: |
+          terraform plan -input=false -no-color \
+            -var-file=environments/${{ inputs.environment }}.tfvars \
+            -out=tfplan
+
+      - name: Apply
+        if: inputs.apply && vars.APPLY_ENABLED == 'true'
+        run: terraform apply -input=false -no-color -auto-approve tfplan
+
+  secrets:
+    if: vars.CI_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan the history for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

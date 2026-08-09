@@ -1,0 +1,12 @@
+%{ if crawlable ~}
+%{ for agent in agents ~}
+User-agent: ${agent}
+Allow: /${portfolio_prefix}/
+Disallow: /
+
+%{ endfor ~}
+Sitemap: ${site_url}/sitemap.xml
+%{ else ~}
+User-agent: *
+Disallow: /
+%{ endif ~}

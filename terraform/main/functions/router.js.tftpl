@@ -1,0 +1,6 @@
+function handler(event) {
+  var request = event.request
+  var first = request.uri.split('/')[1]
+  request.uri = first === '${portfolio_prefix}' ? '/${portfolio_shell}' : '/${console_shell}'
+  return request
+}

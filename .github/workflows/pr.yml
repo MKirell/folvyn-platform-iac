@@ -1,0 +1,33 @@
+name: pr
+
+on:
+  pull_request:
+    paths: ['terraform/**']
+
+concurrency:
+  group: terraform-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dev:
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: dev
+      apply: false
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
+
+  prod:
+    uses: ./.github/workflows/terraform.yml
+    with:
+      environment: prod
+      apply: false
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit
