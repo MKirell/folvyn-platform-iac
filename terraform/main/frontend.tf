@@ -37,13 +37,14 @@ resource "aws_cloudfront_origin_access_control" "spa" {
 resource "aws_cloudfront_function" "router" {
   name    = "${var.project}-router-${var.environment}"
   runtime = "cloudfront-js-2.0"
-  comment = "Sends /${var.portfolio_prefix}/* to the portfolio shell and everything else to the console."
+  comment = "Sends /${var.portfolio_prefix}/<slug> to its prerendered page and everything else to the console."
   publish = true
 
   code = templatefile("${path.module}/functions/router.js.tftpl", {
-    portfolio_prefix = var.portfolio_prefix
-    portfolio_shell  = local.portfolio_shell_key
-    console_shell    = local.console_shell_key
+    portfolio_prefix       = var.portfolio_prefix
+    portfolio_shell_prefix = local.portfolio_shell_prefix
+    portfolio_shell        = local.portfolio_shell_key
+    console_shell          = local.console_shell_key
   })
 }
 

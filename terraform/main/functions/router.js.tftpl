@@ -1,6 +1,24 @@
+var SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/
+var LANG = /^[a-z]{2}(-[a-z]{2})?$/i
+
 function handler(event) {
   var request = event.request
-  var first = request.uri.split('/')[1]
-  request.uri = first === '${portfolio_prefix}' ? '/${portfolio_shell}' : '/${console_shell}'
+  var segments = request.uri.split('/')
+
+  if (segments[1] !== '${portfolio_prefix}') {
+    request.uri = '/${console_shell}'
+    return request
+  }
+
+  var slug = segments[2]
+  if (!slug || !SLUG.test(slug)) {
+    request.uri = '/${portfolio_shell}'
+    return request
+  }
+
+  var lang = segments[3]
+  var key = '/${portfolio_shell_prefix}/${portfolio_prefix}/' + slug
+
+  request.uri = lang && LANG.test(lang) ? key + '/' + lang + '/index.html' : key + '/index.html'
   return request
 }

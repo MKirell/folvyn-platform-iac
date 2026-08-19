@@ -26,6 +26,7 @@ locals {
   asset_behaviors = {
     "/imgs/*"  = aws_cloudfront_response_headers_policy.assets_locked.id
     "/files/*" = aws_cloudfront_response_headers_policy.app.id
+    "/og/*"    = aws_cloudfront_response_headers_policy.app.id
   }
 
   root_file_paths = ["robots.txt", "sitemap.xml"]
