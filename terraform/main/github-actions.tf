@@ -14,8 +14,9 @@ locals {
 
   frontend_variables = local.github_managed ? {
     (local.repositories.portfolio) = merge(local.shared_frontend_variables, {
-      S3_SHELL_PREFIX  = local.portfolio_shell_prefix
-      S3_BUNDLE_PREFIX = "${local.bundle_prefix}/${local.portfolio_shell_prefix}"
+      S3_SHELL_PREFIX         = local.portfolio_shell_prefix
+      S3_BUNDLE_PREFIX        = "${local.bundle_prefix}/${local.portfolio_shell_prefix}"
+      PRERENDER_FUNCTION_NAME = local.prerender_live ? local.prerender_name : ""
     })
     (local.repositories.console) = merge(local.shared_frontend_variables, {
       S3_SHELL_PREFIX  = local.console_shell_prefix
