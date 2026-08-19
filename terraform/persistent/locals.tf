@@ -24,6 +24,8 @@ locals {
 
   auth_domain = "https://auth.${var.domain_name}"
 
+  state_bucket = "${var.legacy_name_prefix}-tfstate-${data.aws_caller_identity.current.account_id}"
+
   callback_urls = {
     for env, cfg in local.environments : env => concat(
       ["${cfg.app_url}/auth/callback"],

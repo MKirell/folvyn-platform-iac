@@ -7,6 +7,7 @@ locals {
   }
 
   crawlable   = var.environment == "prod"
+  owns_domain = var.environment == "prod"
   host_label  = var.environment == "prod" ? var.project : "${var.project}-${var.environment}"
   app_domain  = "${local.host_label}.${var.domain_name}"
   auth_domain = "auth.${var.domain_name}"
@@ -96,6 +97,8 @@ locals {
     LOG_LEVEL                  = "log"
     APP_ENV                    = var.environment
     ACCESS_ALLOWED_EMAILS      = join(",", lookup(var.access_allowed_emails, var.environment, []))
+    PRERENDER_FUNCTION_NAME    = local.prerender_live ? local.prerender_name : ""
+    PRERENDER_REGION           = var.aws_region
     ASSETS_BUCKET              = aws_s3_bucket.assets.id
     ASSETS_REGION              = var.aws_region
     ASSETS_BASE_URL            = var.dns_validated ? local.app_url : ""

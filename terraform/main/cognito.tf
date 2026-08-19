@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool_domain" "main" {
-  count = var.dns_validated ? 1 : 0
+  count = local.owns_domain && var.dns_validated ? 1 : 0
 
   domain          = local.auth_domain
   user_pool_id    = local.persistent.cognito_user_pool_id

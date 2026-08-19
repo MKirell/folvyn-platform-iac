@@ -53,7 +53,10 @@ jobs:
         run: terraform fmt -check -recursive ..
 
       - name: Init
-        run: terraform init -input=false -backend-config=backends/${{ inputs.environment }}.hcl
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config=backends/${{ inputs.environment }}.hcl
 
       - name: Validate
         run: terraform validate -no-color

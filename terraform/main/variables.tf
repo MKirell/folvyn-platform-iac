@@ -1,3 +1,21 @@
+variable "prerender_enabled" {
+  description = "Create the publish-time renderer. Its code is deployed by the portfolio front end's own pipeline, so Terraform creates the function and never updates its bundle."
+  type        = bool
+  default     = true
+}
+
+variable "prerender_memory_mb" {
+  description = "Rasterising a card is the expensive part; below 512 MB it is slow rather than cheap."
+  type        = number
+  default     = 1024
+}
+
+variable "prerender_timeout_seconds" {
+  description = "One portfolio, one card per locale. Generous, because it never blocks a request."
+  type        = number
+  default     = 60
+}
+
 variable "access_allowed_emails" {
   description = <<-EOT
     Per environment, the email addresses allowed to sign in to it. An environment
@@ -48,6 +66,12 @@ variable "domain_name" {
   description = "Apex domain. Subdomains are derived from it."
   type        = string
   default     = "mkirell.com"
+}
+
+variable "legacy_name_prefix" {
+  description = "Name prefix of the resources that predate the Folvyn rename and cannot be renamed without being replaced. Here it names only the state bucket this stack reads persistent's outputs from. Kept in step with the same variable in persistent."
+  type        = string
+  default     = "mkirell"
 }
 
 variable "portfolio_prefix" {

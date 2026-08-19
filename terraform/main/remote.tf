@@ -2,9 +2,9 @@ data "terraform_remote_state" "persistent" {
   backend = "s3"
 
   config = {
-    bucket  = "mkirell-tfstate-848906241169"
+    bucket  = "${var.legacy_name_prefix}-tfstate-${data.aws_caller_identity.current.account_id}"
     key     = "persistent/terraform.tfstate"
-    region  = "eu-west-3"
+    region  = var.aws_region
     profile = var.aws_profile
   }
 }

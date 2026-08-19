@@ -1,5 +1,6 @@
 secrets.auto.tfvars
 *.local.tfvars
+**/backends/bucket.hcl
 
 .terraform/
 .terraform.lock.hcl

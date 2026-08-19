@@ -78,11 +78,28 @@ data "aws_iam_policy_document" "lambda_assets" {
 }
 
 resource "aws_iam_role_policy" "lambda_assets" {
-  count = local.use_lambda ? 1 : 0
+  count = local.use_lambda && local.deploy_app ? 1 : 0
 
   name   = "${var.project}-lambda-assets-${var.environment}"
   role   = aws_iam_role.lambda[0].id
   policy = data.aws_iam_policy_document.lambda_assets.json
+}
+
+data "aws_iam_policy_document" "lambda_prerender" {
+  count = local.prerender_live ? 1 : 0
+
+  statement {
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.prerender[0].arn]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_prerender" {
+  count = local.use_lambda && local.deploy_app && local.prerender_live ? 1 : 0
+
+  name   = "${var.project}-lambda-prerender-${var.environment}"
+  role   = aws_iam_role.lambda[0].id
+  policy = data.aws_iam_policy_document.lambda_prerender[0].json
 }
 
 data "aws_iam_policy_document" "lambda_directory" {
@@ -97,7 +114,7 @@ data "aws_iam_policy_document" "lambda_directory" {
 }
 
 resource "aws_iam_role_policy" "lambda_directory" {
-  count = local.use_lambda ? 1 : 0
+  count = local.use_lambda && local.deploy_app ? 1 : 0
 
   name   = "${var.project}-lambda-directory-${var.environment}"
   role   = aws_iam_role.lambda[0].id

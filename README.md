@@ -182,7 +182,7 @@ aws cognito-idp list-users-in-group --user-pool-id <id> --group-name platform \
 | ------------ | ------------------------------ | ------------------------------------------------------------------ | --------------------- |
 | `bootstrap`  | local                          | State bucket, backup bucket                                        | no, `prevent_destroy` |
 | `persistent` | `persistent/terraform.tfstate` | Route53 zone, Cognito, ECR, Atlas cluster, OIDC role, CI config    | rarely                |
-| `main`       | `main/terraform.tfstate`       | ACM, API Gateway, Lambda/Fargate, CloudFront, S3 site, DNS records | yes                   |
+| `main`       | `env/<env>/main.tfstate`       | ACM, API Gateway, Lambda/Fargate, CloudFront, S3 site, DNS records | yes                   |
 
 The split exists for one reason: **everything that holds state or identity lives outside the destroy blast
 radius.**
@@ -197,12 +197,28 @@ radius.**
 None of those cost anything meaningful to keep, so keeping them is strictly better than backing them up
 and restoring them.
 
-**Why `bootstrap` exists.** `persistent` and `main` keep their state in `mkirell-tfstate-848906241169`.
-Something has to create that bucket before Terraform can use it as a backend, and it cannot be the stacks
-that depend on it. `bootstrap` is that something: a small stack with **local** state that runs once and is
-then left alone. Its own state is gitignored, with a copy at
-`s3://mkirell-backups-848906241169/bootstrap/terraform.tfstate`. Losing the local copy costs nothing
-material — the buckets carry `prevent_destroy` and would simply need re-importing.
+**Why `bootstrap` exists.** `persistent` and `main` keep their state in
+`<legacy_name_prefix>-tfstate-<account-id>`. Something has to create that bucket before Terraform can use
+it as a backend, and it cannot be the stacks that depend on it. `bootstrap` is that something: a small
+stack with **local** state that runs once and is then left alone. Its own state is gitignored, with a copy
+at `s3://<legacy_name_prefix>-backups-<account-id>/bootstrap/terraform.tfstate`. Losing the local copy
+costs nothing material — the buckets carry `prevent_destroy` and would simply need re-importing.
+
+**The bucket name is never written down here.** It contains the AWS account id, and these repositories are
+public, so it is supplied at `init` instead of being committed in the backend block. Locally that is a
+gitignored `backends/bucket.hcl` in each stack, written once:
+
+```bash
+export AWS_PROFILE=mkirell
+for stack in terraform/main terraform/persistent; do
+  printf 'bucket = "mkirell-tfstate-%s"\n' \
+    "$(aws sts get-caller-identity --query Account --output text)" > "$stack/backends/bucket.hcl"
+done
+```
+
+In CI the same value arrives as the `TF_STATE_BUCKET` environment variable, which `persistent` writes onto
+the IaC repository's environments. Everything else that would name the account — bucket names, role ARNs,
+log groups — is derived from `data "aws_caller_identity"`, never a literal.
 
 ## Destroy and reapply
 

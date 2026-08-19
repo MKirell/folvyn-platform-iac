@@ -35,6 +35,7 @@ locals {
       (local.repositories.iac) = {
         AWS_REGION          = var.aws_region
         AWS_DEPLOY_ROLE_ARN = aws_iam_role.github_deploy[env].arn
+        TF_STATE_BUCKET     = local.state_bucket
       }
     }
   }

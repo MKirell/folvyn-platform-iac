@@ -16,6 +16,8 @@ resource "aws_route53_record" "cert_validation" {
 }
 
 resource "aws_route53_record" "apex" {
+  count = local.owns_domain ? 1 : 0
+
   zone_id = local.persistent.route53_zone_id
   name    = var.domain_name
   type    = "A"
@@ -52,7 +54,7 @@ resource "aws_route53_record" "app_ipv6" {
 }
 
 resource "aws_route53_record" "auth" {
-  count = var.dns_validated ? 1 : 0
+  count = local.owns_domain && var.dns_validated ? 1 : 0
 
   zone_id = local.persistent.route53_zone_id
   name    = local.auth_domain
