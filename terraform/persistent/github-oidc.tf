@@ -84,6 +84,7 @@ data "aws_iam_policy_document" "github_deploy" {
       "lambda:GetFunction",
       "lambda:GetFunctionConfiguration",
       "lambda:PublishVersion",
+      "lambda:InvokeFunction",
     ]
     resources = ["arn:aws:lambda:*:${data.aws_caller_identity.current.account_id}:function:${var.project}-*-${each.key}"]
   }
