@@ -76,11 +76,10 @@ locals {
     "http://localhost:5174",
   ]
 
-  cors_origins = join(",", [
-    local.app_url,
-    "http://localhost:5173",
-    "http://localhost:5174",
-  ])
+  cors_origins = join(",", concat(
+    [local.app_url],
+    var.environment == "prod" ? [] : ["http://localhost:5173", "http://localhost:5174"],
+  ))
 
   app_environment = {
     NODE_ENV                     = "production"
@@ -102,6 +101,7 @@ locals {
     COGNITO_HOSTED_UI_DOMAIN   = var.dns_validated ? "https://${local.auth_domain}" : ""
     LOG_LEVEL                  = "log"
     APP_ENV                    = var.environment
+    APP_IMAGE_TAG              = var.app_image_tag
     ACCESS_ALLOWED_EMAILS      = join(",", lookup(var.access_allowed_emails, var.environment, []))
     PRERENDER_FUNCTION_NAME    = local.prerender_live ? local.prerender_name : ""
     PRERENDER_REGION           = var.aws_region

@@ -32,7 +32,7 @@ jobs:
             --source=/repo --redact --no-banner --exit-code=1
 
   dev:
-    uses: ./.github/workflows/terraform.yml
+    uses: ./.github/workflows/plan.yml
     with:
       environment: dev
       apply: false
@@ -42,7 +42,7 @@ jobs:
     secrets: inherit
 
   prod:
-    uses: ./.github/workflows/terraform.yml
+    uses: ./.github/workflows/plan.yml
     with:
       environment: prod
       apply: false
