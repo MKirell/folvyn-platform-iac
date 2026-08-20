@@ -14,24 +14,35 @@ need() { command -v "$1" >/dev/null || { echo "$1 is required" >&2; exit 1; }; }
 need gh
 need aws
 need terraform
+need jq
 
-ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+if ! ACCOUNT=$(aws sts get-caller-identity --query Account --output text 2>&1); then
+  echo "aws could not authenticate: $ACCOUNT" >&2
+  echo "export AWS_PROFILE to a profile with access to this account, then re-run" >&2
+  exit 1
+fi
 STATE_BUCKET="$STATE_PREFIX-tfstate-$ACCOUNT"
 
 here=$(cd "$(dirname "$0")" && pwd)
 
 read_output() {
-  terraform -chdir="$here/../terraform/$1" output -json "$2" 2>/dev/null
+  terraform -chdir="$here/../terraform/$1" output -json "$2" 2>/dev/null || true
 }
 
 CLIENT_IDS=$(read_output persistent cognito_console_client_ids)
-[ -z "$CLIENT_IDS" ] && { echo "run terraform init in terraform/persistent first" >&2; exit 1; }
+if [ -z "$CLIENT_IDS" ] || [ "$CLIENT_IDS" = "null" ]; then
+  echo "terraform/persistent has no cognito_console_client_ids output" >&2
+  echo "run: terraform -chdir=terraform/persistent init" >&2
+  exit 1
+fi
 
 put_env() { gh api -X PUT "repos/$OWNER/$1/environments/$2" --silent; }
 
 put_var() {
   local repo=$1 env=$2 name=$3 value=$4
   [ -z "$value" ] && return 0
+  local MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
+  export MSYS_NO_PATHCONV MSYS2_ARG_CONV_EXCL
   if gh api "repos/$OWNER/$repo/environments/$env/variables/$name" >/dev/null 2>&1; then
     gh api -X PATCH "repos/$OWNER/$repo/environments/$env/variables/$name" \
       -f name="$name" -f value="$value" --silent
@@ -47,13 +58,13 @@ for env in dev prod; do
   site="https://$host.$DOMAIN"
   role="arn:aws:iam::$ACCOUNT:role/$PROJECT-github-deploy-$env"
   spa="$PROJECT-spa-$env-$ACCOUNT"
-  client=$(printf '%s' "$CLIENT_IDS" | python -c "import json,sys;print(json.load(sys.stdin)['$env'])")
+  client=$(printf '%s' "$CLIENT_IDS" | jq -r --arg env "$env" '.[$env] // empty')
 
   dist=$(aws cloudfront list-distributions \
     --query "DistributionList.Items[?contains(Aliases.Items, '$host.$DOMAIN')].Id | [0]" \
-    --output text 2>/dev/null)
-  [ "$dist" = "None" ] && dist=""
-  [ -z "$dist" ] && echo "    (nothing is aliased to $host.$DOMAIN yet)" >&2
+    --output text 2>/dev/null || true)
+  if [ "$dist" = "None" ]; then dist=""; fi
+  if [ -z "$dist" ]; then echo "    (nothing is aliased to $host.$DOMAIN yet)" >&2; fi
 
   for repo in "${REPOS[@]}"; do
     echo "== $repo / $env =="
