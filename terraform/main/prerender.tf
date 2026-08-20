@@ -45,6 +45,18 @@ data "aws_iam_policy_document" "prerender" {
   }
 
   statement {
+    sid       = "FindWhatItWrote"
+    actions   = ["s3:ListBucket"]
+    resources = [aws_s3_bucket.spa.arn]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.portfolio_shell_prefix}/${var.portfolio_prefix}/*"]
+    }
+  }
+
+  statement {
     sid     = "WriteThePrerenderedPages"
     actions = ["s3:PutObject", "s3:DeleteObject"]
     resources = [
