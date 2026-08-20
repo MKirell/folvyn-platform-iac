@@ -1,4 +1,4 @@
-name: terraform
+name: reusable · terraform
 
 on:
   workflow_call:
@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   terraform:
+    name: plan
     if: vars.CI_ENABLED != 'false'
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
@@ -70,17 +71,3 @@ jobs:
       - name: Apply
         if: inputs.apply && vars.APPLY_ENABLED == 'true'
         run: terraform apply -input=false -no-color -auto-approve tfplan
-
-  secrets:
-    if: vars.CI_ENABLED != 'false'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Scan the history for secrets
-        run: |
-          docker run --rm -v "$PWD:/repo" \
-            zricethezav/gitleaks:latest detect \
-            --source=/repo --redact --no-banner --exit-code=1

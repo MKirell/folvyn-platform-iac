@@ -1,4 +1,4 @@
-name: main
+name: verify
 
 on:
   push:
@@ -16,6 +16,21 @@ permissions:
   contents: read
 
 jobs:
+  secrets:
+    name: secret scan
+    if: vars.CI_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Scan the history for secrets
+        run: |
+          docker run --rm -v "$PWD:/repo" \
+            zricethezav/gitleaks:latest detect \
+            --source=/repo --redact --no-banner --exit-code=1
+
   dev:
     uses: ./.github/workflows/terraform.yml
     with:

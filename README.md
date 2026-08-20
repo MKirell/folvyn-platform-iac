@@ -303,16 +303,23 @@ The plan job runs with a read-only AWS role, so it can never mutate anything whi
 
 ## Deployment
 
-| Workflow                | Trigger                          | Does                                    |
-| ----------------------- | -------------------------------- | --------------------------------------- |
-| `terraform.yml` — plan  | push or PR touching `terraform/` | fmt, validate, plan                     |
-| `terraform.yml` — apply | push to `main`, after approval   | re-plans and applies the **main** stack |
+| Workflow    | Trigger                          | Does                                             |
+| ----------- | -------------------------------- | ------------------------------------------------ |
+| `main.yml`  | push to `main`, PR, or by hand   | scans the history for secrets once, then plans **dev and prod** |
 
-**CI can apply the main stack, and only after a human approves it.** The apply job is bound to the
-`production-apply` environment, which requires a review before the job starts, so the plan is read by a
-person before anything is touched. It is also off unless the `APPLY_ENABLED` repository variable is
-`true`, and it re-plans rather than consuming an artefact from the plan job — a saved plan file embeds the
-resolved Atlas URI, GitHub token and Google secret in plaintext.
+**CI plans; it never applies.** One branch, because a branch whose job is "apply this environment" has
+no job to do here: the deploy role has no `iam:PutRolePolicy` or `DeleteRolePolicy` and the stack creates
+four inline role policies, the apply policy is granted to `dev` alone, and nothing supplies
+`APP_IMAGE_TAG` to CI — so an apply computes an empty tag, decides the application is not deployed, and
+plans the Lambda, its policies, the prerender function and the API integration away.
+
+Both environments are planned on every change, including on the pull request, because the plan worth
+reading is the one for the environment you are **not** merging into. `APPLY_ENABLED` stays `false`; the
+apply path is kept in `terraform.yml` for whoever grants those permissions, and it re-plans rather than
+consuming an artefact from the plan job — a saved plan file embeds the resolved Atlas URI, GitHub token
+and Google secret in plaintext.
+
+**Applies run locally**, which is also where the four commands in [Quick start](#quick-start) live.
 
 **The role cannot reach the persistent stack.** `github_terraform_apply = true` grants writes only to what
 `main` manages: ACM, CloudFront, Route53 records **in this zone only**, Lambda, API Gateway, the site
