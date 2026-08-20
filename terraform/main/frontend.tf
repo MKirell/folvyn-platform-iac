@@ -1,8 +1,3 @@
-moved {
-  from = aws_cloudfront_distribution.portfolio
-  to   = aws_cloudfront_distribution.app
-}
-
 resource "aws_s3_bucket" "spa" {
   bucket        = "${var.project}-spa-${var.environment}-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
@@ -233,7 +228,7 @@ resource "aws_cloudfront_distribution" "app" {
 
   custom_error_response {
     error_code            = 403
-    response_code         = 200
+    response_code         = 403
     response_page_path    = "/${local.portfolio_shell_prefix}/index.html"
     error_caching_min_ttl = 10
   }
