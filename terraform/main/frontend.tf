@@ -91,7 +91,7 @@ resource "aws_cloudfront_response_headers_policy" "app" {
         "script-src 'self' 'unsafe-inline'",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: blob:",
+        "img-src 'self' data: blob: ${join(" ", local.avatar_hosts)}",
         "connect-src 'self' https://${local.auth_domain} https://${aws_s3_bucket.assets.bucket_regional_domain_name}",
         "frame-src 'self'",
         "frame-ancestors 'self'",

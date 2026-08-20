@@ -23,6 +23,11 @@ locals {
   console_shell_key   = "${local.console_shell_prefix}/index.html"
   portfolio_shell_key = "${local.portfolio_shell_prefix}/index.html"
 
+  avatar_hosts = [
+    "https://lh3.googleusercontent.com",
+    "https://media.licdn.com",
+  ]
+
   asset_behaviors = {
     "/imgs/*"  = aws_cloudfront_response_headers_policy.assets_locked.id
     "/files/*" = aws_cloudfront_response_headers_policy.app.id

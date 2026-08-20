@@ -1,4 +1,4 @@
-name: reusable · terraform
+name: plan
 
 on:
   workflow_call:
