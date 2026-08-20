@@ -201,3 +201,17 @@ variable "github_owner" {
   type    = string
   default = "MKirell"
 }
+
+variable "manage_github_ci" {
+  description = <<-EOT
+    Whether this stack writes the deploy workflows' environment variables. It needs a token
+    with the Environments permission; a token without it cannot create them and every apply
+    fails on a 403 while the rest of the environment is already converged.
+
+    The values are per environment, so they are environment variables rather than repository
+    ones — two environments cannot share one repository variable without overwriting each
+    other on every apply.
+  EOT
+  type        = bool
+  default     = true
+}

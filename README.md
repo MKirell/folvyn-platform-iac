@@ -326,8 +326,30 @@ Lambda role broader rights and escalate through it.
 **`persistent` is still applied locally, never from CI**, and is not even planned there. It holds the
 things that cannot be rebuilt: the user pool with the admin account, the Atlas cluster, the hosted zone.
 
-**CI configuration is Terraform-managed.** Set `github_token` and apply; Terraform writes every repository
-variable and every IaC secret across the four repositories:
+**The CI variables are per environment, not per repository.** Two environments cannot share one repository
+variable — the second apply overwrites the first, and the front ends end up pointing at the other
+environment's bucket and distribution. They are `github_actions_environment_variable`, keyed by
+`var.environment`.
+
+Writing them needs a token carrying the **Environments: read and write** permission. A fine-grained token
+without it cannot create an environment or its variables, and every apply fails on a 403 with the rest of
+the environment already converged. `manage_github_ci` exists for exactly that case:
+
+- **`true`** (default) — Terraform owns the deploy workflows' variables, which is the intended state.
+- **`false`** — Terraform leaves them alone, and `scripts/seed-github-environments.sh` writes the same
+  values from the same sources. Both environment files set it to `false` today because the current token
+  lacks the permission; grant it, flip the flag, and Terraform takes ownership back.
+
+The script is idempotent and derives every value rather than restating it — the account id from STS, the
+client ids from `persistent`'s outputs, the distribution from whichever one carries that environment's
+alias. Run it after the `main` apply for an environment:
+
+```bash
+export AWS_PROFILE=mkirell
+./scripts/seed-github-environments.sh
+```
+
+**What Terraform writes when `manage_github_ci` is true**, across the four repositories:
 
 | Stack        | Writes                                                                                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -1,5 +1,5 @@
 locals {
-  github_managed = nonsensitive(var.github_token != "")
+  github_managed = var.manage_github_ci && nonsensitive(var.github_token != "")
 
   repositories = {
     portfolio = "${var.project}-portfolio-mf"
@@ -29,6 +29,7 @@ locals {
     for repo, variables in local.frontend_variables : {
       for name, value in variables :
       "${repo}/${name}" => { repository = repo, name = name, value = value }
+      if value != ""
     }
   ]...)
 
@@ -37,18 +38,20 @@ locals {
   } : {}
 }
 
-resource "github_actions_variable" "frontend" {
+resource "github_actions_environment_variable" "frontend" {
   for_each = local.frontend_variable_pairs
 
   repository    = each.value.repository
+  environment   = var.environment
   variable_name = each.value.name
   value         = each.value.value
 }
 
-resource "github_actions_variable" "iac" {
+resource "github_actions_environment_variable" "iac" {
   for_each = local.iac_variables
 
   repository    = local.repositories.iac
+  environment   = var.environment
   variable_name = each.key
   value         = each.value
 }

@@ -25,18 +25,25 @@ data "aws_iam_policy_document" "github_assume" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        for repo in local.github_repositories :
-        "repo:${var.github_owner}/${repo}:environment:${each.key}"
-      ]
+      values = flatten([
+        for repo in local.github_repositories : [
+          "repo:${var.github_owner}/${repo}:environment:${each.key}",
+          "repo:${var.github_owner}@*/${repo}@*:environment:${each.key}",
+        ]
+      ])
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:repository"
-      values   = [for repo in local.github_repositories : "${var.github_owner}/${repo}"]
+      values = flatten([
+        for repo in local.github_repositories : [
+          "${var.github_owner}/${repo}",
+          "${var.github_owner}@*/${repo}@*",
+        ]
+      ])
     }
   }
 }

@@ -5,4 +5,6 @@ domain_name = "mkirell.com"
 
 compute_mode  = "lambda"
 dns_validated = true
-app_image_tag = "72c47e038591fd02e940f870c37197fc93865ba0"
+app_image_tag = ""
+
+manage_github_ci = false
