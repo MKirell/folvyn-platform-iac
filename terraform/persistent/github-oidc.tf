@@ -81,6 +81,7 @@ data "aws_iam_policy_document" "github_deploy" {
     effect = "Allow"
     actions = [
       "lambda:UpdateFunctionCode",
+      "lambda:UpdateFunctionConfiguration",
       "lambda:GetFunction",
       "lambda:GetFunctionConfiguration",
       "lambda:PublishVersion",
