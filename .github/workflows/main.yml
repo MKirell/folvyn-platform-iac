@@ -1,12 +1,16 @@
-name: pr
+name: main
 
 on:
+  push:
+    branches: [main]
+    paths: ['terraform/**']
   pull_request:
     paths: ['terraform/**']
+  workflow_dispatch:
 
 concurrency:
-  group: terraform-pr-${{ github.ref }}
-  cancel-in-progress: true
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read

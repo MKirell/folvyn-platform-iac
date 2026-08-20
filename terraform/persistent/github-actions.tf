@@ -106,9 +106,14 @@ resource "github_repository_environment" "managed" {
 resource "github_repository_environment_deployment_policy" "managed" {
   for_each = local.repository_environments
 
-  repository     = each.value.repository
-  environment    = github_repository_environment.managed[each.key].environment
-  branch_pattern = each.value.environment == "prod" ? "main" : "develop"
+  repository  = each.value.repository
+  environment = github_repository_environment.managed[each.key].environment
+
+  branch_pattern = (
+    each.value.repository == local.repositories.iac || each.value.environment == "prod"
+    ? "main"
+    : "develop"
+  )
 }
 
 resource "github_actions_environment_variable" "managed" {
