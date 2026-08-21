@@ -6,5 +6,3 @@ domain_name = "mkirell.com"
 compute_mode  = "lambda"
 dns_validated = true
 app_image_tag = ""
-
-manage_github_ci = false

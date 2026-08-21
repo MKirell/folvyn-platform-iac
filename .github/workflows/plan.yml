@@ -71,3 +71,11 @@ jobs:
       - name: Apply
         if: inputs.apply && vars.APPLY_ENABLED == 'true'
         run: terraform apply -input=false -no-color -auto-approve tfplan
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### terraform — ${{ job.status }}"
+            echo
+            echo "Formatting, validation and a plan for every environment."
+          } >> "$GITHUB_STEP_SUMMARY"

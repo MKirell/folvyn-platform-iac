@@ -1,5 +1,5 @@
 locals {
-  github_managed = var.manage_github_ci && nonsensitive(var.github_token != "")
+  github_managed = nonsensitive(var.github_token != "")
 
   repositories = {
     portfolio = "${var.project}-portfolio-mf"
