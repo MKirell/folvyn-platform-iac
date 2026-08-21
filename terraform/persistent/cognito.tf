@@ -67,6 +67,11 @@ resource "aws_cognito_identity_provider" "google" {
     client_secret                 = var.google_client_secret
     authorize_scopes              = "openid profile email"
     attributes_url_add_attributes = "true"
+    attributes_url                = "https://people.googleapis.com/v1/people/me?personFields="
+    authorize_url                 = "https://accounts.google.com/o/oauth2/v2/auth"
+    oidc_issuer                   = "https://accounts.google.com"
+    token_request_method          = "POST"
+    token_url                     = "https://www.googleapis.com/oauth2/v4/token"
   }
 
   attribute_mapping = {
@@ -88,11 +93,12 @@ resource "aws_cognito_identity_provider" "linkedin" {
   provider_type = "OIDC"
 
   provider_details = {
-    client_id                 = var.linkedin_client_id
-    client_secret             = var.linkedin_client_secret
-    oidc_issuer               = "https://www.linkedin.com/oauth"
-    authorize_scopes          = "openid profile email"
-    attributes_request_method = "GET"
+    client_id                     = var.linkedin_client_id
+    client_secret                 = var.linkedin_client_secret
+    oidc_issuer                   = "https://www.linkedin.com/oauth"
+    authorize_scopes              = "openid profile email"
+    attributes_request_method     = "GET"
+    attributes_url_add_attributes = "false"
   }
 
   attribute_mapping = {
