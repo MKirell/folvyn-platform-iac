@@ -1,5 +1,5 @@
 resource "aws_ecr_repository" "api" {
-  name                 = "${var.legacy_name_prefix}-portfolio-ms"
+  name                 = "${var.project}-portfolio-ms"
   image_tag_mutability = "MUTABLE"
   force_delete         = true
 

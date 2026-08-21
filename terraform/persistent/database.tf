@@ -58,16 +58,9 @@ resource "mongodbatlas_database_user" "app" {
   password           = random_password.mongodb[each.key].result
   auth_database_name = "admin"
 
-  dynamic "roles" {
-    for_each = toset(compact(distinct([
-      each.value.db_name,
-      each.key == "prod" ? var.mongodb_db_name : "",
-    ])))
-
-    content {
-      role_name     = "readWrite"
-      database_name = roles.value
-    }
+  roles {
+    role_name     = "readWrite"
+    database_name = each.value.db_name
   }
 }
 

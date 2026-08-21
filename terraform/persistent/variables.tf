@@ -49,11 +49,6 @@ variable "atlas_region" {
   default = "EU_WEST_1"
 }
 
-variable "mongodb_db_name" {
-  type    = string
-  default = "mkirell_portfolio"
-}
-
 variable "google_client_id" {
   type    = string
   default = ""

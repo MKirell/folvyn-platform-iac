@@ -21,6 +21,7 @@
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Security](#security)
+- [Names still to retire](#names-still-to-retire)
 - [Related repositories](#related-repositories)
 - [License](#license)
 - [Author](#author)
@@ -78,21 +79,35 @@ traffic; the one standing charge is the Route53 hosted zone at about $0.50/month
 
 ## Quick start
 
-**Prerequisites** — Terraform ≥ 1.10, AWS CLI configured as profile `mkirell`, and a
+**Prerequisites** — Terraform ≥ 1.10, AWS CLI configured as profile `mkirell`, GNU Make, and a
 `secrets.auto.tfvars` in each stack (see [Configuration](#configuration)).
 
 ```bash
-export AWS_PROFILE=mkirell
-
-cd terraform/persistent
-terraform apply -var-file=environments/prod.tfvars
-
-cd ../main
-terraform apply -var-file=environments/prod.tfvars
+make help                         # every target
+make plan ENV=prod                # what an apply would change
+make apply-all ENV=prod           # the shared stack, then the environment
 ```
 
-`persistent` first — `main` reads its outputs through a `terraform_remote_state` data source, so IDs flow
-one way and the two stacks never fight over a resource.
+The Makefile is the interface. It resolves the image tag from the function that is actually running
+rather than from the tfvars, which carry an empty string so a first apply can create a function before
+any image exists — applying without it would point the function at nothing.
+
+| Target                                 | What it does                                                    |
+| -------------------------------------- | --------------------------------------------------------------- |
+| `plan` / `apply` / `destroy`           | the environment stack, `ENV=dev` unless told otherwise          |
+| `plan-persistent` / `apply-persistent` | the shared stack, which has no environment                      |
+| `apply-all` / `plan-all`               | the shared stack first, then the environment                    |
+| `destroy-all`                          | both, and it refuses without `CONFIRM=i-know-what-this-deletes` |
+| `output` / `fmt` / `validate`          | the usual                                                       |
+
+Add `YES=1` to apply or destroy without being asked to confirm.
+
+`ENV` defaults to `dev` deliberately: `main` keeps separate state per environment, and an unqualified
+command should never reach production.
+
+Running the stacks directly still works, `persistent` first — `main` reads its outputs through a
+`terraform_remote_state` data source, so IDs flow one way and the two stacks never fight over a
+resource.
 
 `secrets.auto.tfvars` is picked up automatically because of the `.auto.` suffix, so credentials never
 appear on a command line or in shell history.
@@ -303,9 +318,9 @@ The plan job runs with a read-only AWS role, so it can never mutate anything whi
 
 ## Deployment
 
-| Workflow    | Trigger                          | Does                                             |
-| ----------- | -------------------------------- | ------------------------------------------------ |
-| `main.yml`  | push to `main`, PR, or by hand   | scans the history for secrets once, then plans **dev and prod** |
+| Workflow   | Trigger                        | Does                                                            |
+| ---------- | ------------------------------ | --------------------------------------------------------------- |
+| `main.yml` | push to `main`, PR, or by hand | scans the history for secrets once, then plans **dev and prod** |
 
 **CI plans; it never applies.** One branch, because a branch whose job is "apply this environment" has
 no job to do here: the deploy role has no `iam:PutRolePolicy` or `DeleteRolePolicy` and the stack creates
@@ -338,25 +353,17 @@ variable — the second apply overwrites the first, and the front ends end up po
 environment's bucket and distribution. They are `github_actions_environment_variable`, keyed by
 `var.environment`.
 
-Writing them needs a token carrying the **Environments: read and write** permission. A fine-grained token
-without it cannot create an environment or its variables, and every apply fails on a 403 with the rest of
-the environment already converged. `manage_github_ci` exists for exactly that case:
+Writing them needs a fine-grained token carrying, on the four repositories, **Environments**,
+**Variables** and **Secrets** at read and write, **Contents** at read-only, and **Administration** at
+read and write. The last one is the surprise: GitHub files _creating or updating an environment_ under
+Administration, while Environments covers only what lives inside one. A token missing it can write
+variables and still fail on a 403 the moment an environment itself has to change.
 
-- **`true`** (default) — Terraform owns the deploy workflows' variables, which is the intended state.
-- **`false`** — Terraform leaves them alone, and `scripts/seed-github-environments.sh` writes the same
-  values from the same sources. Both environment files set it to `false` today because the current token
-  lacks the permission; grant it, flip the flag, and Terraform takes ownership back.
+The token goes in `terraform/persistent/secrets.auto.tfvars` as `github_token`, which is gitignored. An
+empty one leaves the workflow configuration unmanaged; there is no flag beyond that, because the token
+either can write or cannot.
 
-The script is idempotent and derives every value rather than restating it — the account id from STS, the
-client ids from `persistent`'s outputs, the distribution from whichever one carries that environment's
-alias. Run it after the `main` apply for an environment:
-
-```bash
-export AWS_PROFILE=mkirell
-./scripts/seed-github-environments.sh
-```
-
-**What Terraform writes when `manage_github_ci` is true**, across the four repositories:
+**What Terraform writes**, across the four repositories:
 
 | Stack        | Writes                                                                                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -385,10 +392,29 @@ app client ids; it verifies tokens against a public JWKS.
 **Database access** is gated on a Terraform-generated password. The Atlas network allowlist is `0.0.0.0/0`
 by necessity — Lambda has no fixed egress IP and Atlas M0 supports neither PrivateLink nor peering.
 
+## Names still to retire
+
+The platform was renamed from `mkirell` to `folvyn`. Everything that was only a string followed at
+once; what remains are the resources a name change **replaces** rather than renames, which is why each
+is its own piece of work rather than a line in someone else's change.
+
+| Still named `mkirell`                       | Why it is not a rename                                                                                                                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Atlas cluster `mkirell`, user `mkirell-app` | Both force replacement, and replacing an M0 deletes the data — the free tier allows one cluster per project, so there is no side-by-side. Back up, replace, restore, verify                                               |
+| `mkirell-tfstate-*` and `mkirell-backups-*` | Create the new buckets, `aws s3 sync` the objects, change `bucket` in both backend blocks, `terraform init -migrate-state`, confirm a plan reports **no changes**, then remove `prevent_destroy` and delete the originals |
+| `legacy_name_prefix`                        | The variable holding what is left. It goes when the two rows above do                                                                                                                                                     |
+
+Already retired: the production database (`mkirell_portfolio` → `folvyn_portfolio`, copied and verified
+before the function was repointed), the ECR repository (images copied by digest, both functions rolled
+onto the new one, the old deleted) and the Cognito `platform` group.
+
+**GitHub keeps a redirect from each old repository name forever**, so a stale clone keeps working
+silently. The remotes were repointed explicitly for that reason.
+
 ## Related repositories
 
-| Repository                                                              | Role                           |
-| ----------------------------------------------------------------------- | ------------------------------ |
+| Repository                                                            | Role                           |
+| --------------------------------------------------------------------- | ------------------------------ |
 | [folvyn-portfolio-mf](https://github.com/MKirell/folvyn-portfolio-mf) | Every published portfolio      |
 | [folvyn-console-mf](https://github.com/MKirell/folvyn-console-mf)     | The owner and operator console |
 | [folvyn-portfolio-ms](https://github.com/MKirell/folvyn-portfolio-ms) | The API both of them talk to   |
