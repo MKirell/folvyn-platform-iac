@@ -15,6 +15,8 @@ PERSISTENT := terraform/persistent
 VARS := -var-file=environments/$(ENV).tfvars
 SHARED := -var-file=shared.tfvars
 
+APPROVE := $(if $(YES),-auto-approve,)
+
 IMAGE_TAG = -var "app_image_tag=$$(aws lambda get-function-configuration \
 	--function-name folvyn-portfolio-ms-$(ENV) --region $(REGION) \
 	--query 'Environment.Variables.APP_IMAGE_TAG' --output text 2>/dev/null || echo '')"
@@ -36,6 +38,8 @@ help:
 	@echo "  make apply-all ENV=prod      the shared stack first, then the environment"
 	@echo "  make destroy ENV=dev         take the billable half down"
 	@echo "  make output ENV=prod         the environment's outputs"
+	@echo
+	@echo "Add YES=1 to apply or destroy without being asked to confirm."
 	@echo
 	@echo "  make plan-persistent         the shared stack: zone, Cognito, ECR, Atlas, CI config"
 	@echo "  make apply-persistent        apply it"
@@ -72,17 +76,17 @@ plan: plan-main
 plan-all: plan-persistent plan-main
 
 apply-main: init-main
-	@cd $(MAIN) && terraform apply $(VARS) $(IMAGE_TAG)
+	@cd $(MAIN) && terraform apply $(APPROVE) $(VARS) $(IMAGE_TAG)
 
 apply-persistent: init-persistent
-	@cd $(PERSISTENT) && terraform apply $(SHARED)
+	@cd $(PERSISTENT) && terraform apply $(APPROVE) $(SHARED)
 
 apply: apply-main
 
 apply-all: apply-persistent apply-main
 
 destroy-main: init-main
-	@cd $(MAIN) && terraform destroy $(VARS) $(IMAGE_TAG)
+	@cd $(MAIN) && terraform destroy $(APPROVE) $(VARS) $(IMAGE_TAG)
 
 destroy: destroy-main
 
@@ -96,7 +100,7 @@ ifneq ($(CONFIRM),i-know-what-this-deletes)
 	@exit 1
 else
 	@$(MAKE) init-persistent
-	@cd $(PERSISTENT) && terraform destroy $(SHARED)
+	@cd $(PERSISTENT) && terraform destroy $(APPROVE) $(SHARED)
 endif
 
 destroy-all:

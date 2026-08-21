@@ -18,7 +18,7 @@ locals {
     for env in var.environments : env => {
       host_label = env == "prod" ? var.project : "${var.project}-${env}"
       app_url    = "https://${env == "prod" ? var.project : "${var.project}-${env}"}.${var.domain_name}"
-      db_name    = env == "prod" ? var.mongodb_db_name : "${var.project}_portfolio"
+      db_name    = "${var.project}_portfolio"
     }
   }
 
