@@ -21,7 +21,6 @@
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Security](#security)
-- [Names still to retire](#names-still-to-retire)
 - [Related repositories](#related-repositories)
 - [License](#license)
 - [Author](#author)
@@ -135,14 +134,14 @@ terraform apply -var-file=environments/dev.tfvars -var 'app_image_tag='
 > differing in one line, and a copy of an environment file reads like a second environment. A flag on
 > the command line says what it is.
 
-| Variable                | Default  | Effect                                                            |
-| ----------------------- | -------- | ----------------------------------------------------------------- |
-| `compute_mode`          | `lambda` | `lambda` or `fargate` — same ECR image, no application change     |
-| `app_image_tag`         | —        | Which image to deploy. Empty skips compute entirely               |
-| `dns_validated`         | `true`   | Gate for the first apply, before the zone was delegated           |
-| `lambda_memory_mb`      | `512`    | Lambda CPU scales with memory, so this is the speed dial          |
-| `fargate_desired_count` | `1`      | Set to `0` to keep the task definition without paying for compute |
-| `github_token`          | —        | Leave empty and nothing GitHub-related is touched                 |
+| Variable                | Default  | Effect                                                             |
+| ----------------------- | -------- | ------------------------------------------------------------------ |
+| `compute_mode`          | `lambda` | `lambda` or `fargate` — same ECR image, no application change      |
+| `app_image_tag`         | —        | Which image to deploy. Empty skips compute entirely                |
+| `dns_validated`         | `true`   | Set false while the zone is not yet delegated to these nameservers |
+| `lambda_memory_mb`      | `512`    | Lambda CPU scales with memory, so this is the speed dial           |
+| `fargate_desired_count` | `1`      | Set to `0` to keep the task definition without paying for compute  |
+| `github_token`          | —        | Leave empty and nothing GitHub-related is touched                  |
 
 Switching compute is one line:
 
@@ -391,25 +390,6 @@ app client ids; it verifies tokens against a public JWKS.
 
 **Database access** is gated on a Terraform-generated password. The Atlas network allowlist is `0.0.0.0/0`
 by necessity — Lambda has no fixed egress IP and Atlas M0 supports neither PrivateLink nor peering.
-
-## Names still to retire
-
-The platform was renamed from `mkirell` to `folvyn`. Everything that was only a string followed at
-once; what remains are the resources a name change **replaces** rather than renames, which is why each
-is its own piece of work rather than a line in someone else's change.
-
-| Still named `mkirell`                       | Why it is not a rename                                                                                                                                                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Atlas cluster `mkirell`, user `mkirell-app` | Both force replacement, and replacing an M0 deletes the data — the free tier allows one cluster per project, so there is no side-by-side. Back up, replace, restore, verify                                               |
-| `mkirell-tfstate-*` and `mkirell-backups-*` | Create the new buckets, `aws s3 sync` the objects, change `bucket` in both backend blocks, `terraform init -migrate-state`, confirm a plan reports **no changes**, then remove `prevent_destroy` and delete the originals |
-| `legacy_name_prefix`                        | The variable holding what is left. It goes when the two rows above do                                                                                                                                                     |
-
-Already retired: the production database (`mkirell_portfolio` → `folvyn_portfolio`, copied and verified
-before the function was repointed), the ECR repository (images copied by digest, both functions rolled
-onto the new one, the old deleted) and the Cognito `platform` group.
-
-**GitHub keeps a redirect from each old repository name forever**, so a stale clone keeps working
-silently. The remotes were repointed explicitly for that reason.
 
 ## Related repositories
 
